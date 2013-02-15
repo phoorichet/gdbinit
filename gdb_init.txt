@@ -190,10 +190,14 @@ Print entire eflags register
 end
 
 define reg
- printf "     eax:%08X ebx:%08X  ecx:%08X ",  $eax, $ebx, $ecx
- printf " edx:%08X     eflags:%08X\n",  $edx, $eflags
- printf "     esi:%08X edi:%08X  esp:%08X ",  $esi, $edi, $esp
- printf " ebp:%08X     eip:%08X\n", $ebp, $eip
+ printf "     rax:%08X rbx:%08X  rcx(4):%08X ",  $rax, $rbx, $rcx
+ printf " rdx(3):%08X     eflags:%08X\n",  $rdx, $eflags
+ printf "     rsi(2):%08X rdi(1):%08X\n",  $rsi, $rdi
+ printf "     rsp:%08X rbp:%08X rip:%08X\n", $rsp, $rbp, $rip
+ printf "     r8(5):%08X r9(6):%08X  r10:%08X ",  $r8, $r9, $r10
+ printf " r11:%08X\n", $r11
+ printf "     r12:%08X r13:%08X  r14:%08X ",  $r12, $r13, $r14
+ printf " r15:%08X\n", $r15
  printf "     cs:%04X  ds:%04X  es:%04X", $cs, $ds, $es
  printf "  fs:%04X  gs:%04X  ss:%04X    ", $fs, $gs, $ss
  flags
