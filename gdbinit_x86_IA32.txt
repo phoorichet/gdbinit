@@ -12,28 +12,28 @@
 #        'context on' now enables auto-display of context screen
 #
 # CHANGELOG:
-#  Version 6.1
+# Version 6.1
 #        fixed filename in step_to_call so it points to /dev/null
 #        changed location of logfiles from /tmp  to ~
-#	Version 6
-#	 added print_insn_type, get_insn_type, context-on, context-off commands
-#	 added trace_calls, trace_run, step_to_call commands
-#	 changed hook-stop so it checks $SHOW_CONTEXT variable
-#	Version 5
-#	 added bpm, dump_bin, dump_hex, bp_alloc commands
+# Version 6
+#  added print_insn_type, get_insn_type, context-on, context-off commands
+#  added trace_calls, trace_run, step_to_call commands
+#  changed hook-stop so it checks $SHOW_CONTEXT variable
+# Version 5
+#  added bpm, dump_bin, dump_hex, bp_alloc commands
 #        added 'assemble' by elaine, 'gas_asm' by mong
-#	 added Tip Topics for aspiring crackers ;)
-# 	Version 4
-#	 added eflags-changing insns by pusillus
-#	 added bp, nop, null, and int3 patch commands, also hook-stop
-#	Version 3
-#	 incorporated elaine's if/else goodness into the hex/ascii dump
-#	Version 2
-#	 radix bugfix by elaine
+#  added Tip Topics for aspiring crackers ;)
+#   Version 4
+#  added eflags-changing insns by pusillus
+#  added bp, nop, null, and int3 patch commands, also hook-stop
+# Version 3
+#  incorporated elaine's if/else goodness into the hex/ascii dump
+# Version 2
+#  radix bugfix by elaine
 # TODO:
-#	* add global vars to allow user to control stack,data,code win sizes
-#	* add dump, append, set write, etc commands
-#	* more tips!
+# * add global vars to allow user to control stack,data,code win sizes
+# * add dump, append, set write, etc commands
+# * more tips!
 
 
 # ______________breakpoint aliases_____________
@@ -190,12 +190,10 @@ Print entire eflags register
 end
 
 define reg
- printf "     eax:%08X ebx:%08X  ecx:%08X ",  $eax, $ebx, $ecx
- printf " edx:%08X     eflags:%08X\n",  $edx, $eflags
- printf "     esi:%08X edi:%08X  esp:%08X ",  $esi, $edi, $esp
- printf " ebp:%08X     eip:%08X\n", $ebp, $eip
- printf "     cs:%04X  ds:%04X  es:%04X", $cs, $ds, $es
- printf "  fs:%04X  gs:%04X  ss:%04X    ", $fs, $gs, $ss
+ printf "     eax:%08X ecx:%08X edx:%08X     eflags:%08X\n",  $eax, $ecx, $edx, $eflags
+ printf "     ebx:%08X esi:%08X edi:%08X\n",  $ebx, $esi, $edi
+ printf "     esp:%08X ebp:%08X eip:%08X\n", $esp, $ebp, $eip
+ printf "     cs:%04X  ds:%04X  es:%04X  fs:%04X  gs:%04X  ss:%04X    ", $cs, $ds, $es, $fs, $gs, $ss
  flags
 end
 document reg
@@ -268,10 +266,10 @@ end
 
 define hex_quad
  printf "%02X %02X %02X %02X  %02X %02X %02X %02X",                          \
-		*(unsigned char*)($arg0), *(unsigned char*)($arg0 + 1),      \
-		*(unsigned char*)($arg0 + 2), *(unsigned char*)($arg0 + 3),  \
-		*(unsigned char*)($arg0 + 4), *(unsigned char*)($arg0 + 5),  \
-		*(unsigned char*)($arg0 + 6), *(unsigned char*)($arg0 + 7)
+    *(unsigned char*)($arg0), *(unsigned char*)($arg0 + 1),      \
+    *(unsigned char*)($arg0 + 2), *(unsigned char*)($arg0 + 3),  \
+    *(unsigned char*)($arg0 + 4), *(unsigned char*)($arg0 + 5),  \
+    *(unsigned char*)($arg0 + 6), *(unsigned char*)($arg0 + 7)
 end
 document hex_quad
 Print eight hexadecimal bytes starting at arg0
@@ -361,14 +359,9 @@ define context
  printf "_______________________________________"
  printf "________________________________________\n"
  reg
- printf "[%04X:%08X]------------------------", $ss, $ebp
- printf "---------------------------------[base]\n"
- hexdump $ebp+0x20
- hexdump $ebp+0x10
- hexdump $ebp
+ show_frame
  printf "[%04X:%08X]------------------------", $ss, $esp
  printf "---------------------------------[stack]\n"
- hexdump $sp+0x40
  hexdump $sp+0x30
  hexdump $sp+0x20
  hexdump $sp+0x10
@@ -382,6 +375,19 @@ define context
 end
 document context
 Print regs, stack, ds:esi, and disassemble cs:eip
+end
+
+define show_frame
+ printf "[%04X:%08X]------------------------", $ss, $ebp
+ printf "---------------------------------[base]\n"
+ #hexdump $ebp+0x20
+ #hexdump $ebp+0x10
+ hexdump $ebp
+ set $bp2sp=($ebp - $esp)
+ printf "     [BaseToStack] 0x%04X or %d bytes\n", $bp2sp, $bp2sp 
+end
+document show_frame
+Print frame contents
 end
 
 define context-on
@@ -632,7 +638,7 @@ define get_insn_type
  end
  if ($_byte1 == 0xC2 || $_byte1 == 0xC3 || $_byte1 == 0xCA || $_byte1 == 0xCB || $_byte1 == 0xCF)
   # "ret"
-  set $INSN_TYPE=4		
+  set $INSN_TYPE=4    
  end
  if ($_byte1 >= 0xCC && $_byte1 <= 0xCE)
   # "int"
@@ -646,7 +652,7 @@ define get_insn_type
    set $INSN_TYPE=2
   end
  end
- if ($_byte1 == 0xFF )	
+ if ($_byte1 == 0xFF )  
   # opcode extension
   set $_byte2=*(unsigned char *)($arg0 +1)
   set $_opext=($_byte2 & 0x38)
@@ -835,10 +841,10 @@ end
 
 # !scary bp_alloc macro!
 # The idea behind this macro is to break on the following code:
-#	0x4008e0aa <malloc+6>:  sub    $0xc,%esp
-#	0x4008e0ad <malloc+9>:  call   0x4008e0b2 <malloc+14>
-#	0x4008e0b2 <malloc+14>: pop    %ebx
-#	0x4008e0b3 <malloc+15>: add    $0xa3f6e,%ebx
+# 0x4008e0aa <malloc+6>:  sub    $0xc,%esp
+# 0x4008e0ad <malloc+9>:  call   0x4008e0b2 <malloc+14>
+# 0x4008e0b2 <malloc+14>: pop    %ebx
+# 0x4008e0b3 <malloc+15>: add    $0xa3f6e,%ebx
 # At 0x4008e0b3, %ebx contains the address that has just been allocated
 # The bp_alloc macro generates this breakpoint and *should* work for
 # the forseeable future ... but if it breaks, set a breakpoint on 
@@ -859,7 +865,7 @@ define dump_hexfile
 end
 document dump_hexfile
 Write a range of memory to a file in Intel ihex (hexdump) format.
-Usage:	dump_hexfile filename start_addr end_addr
+Usage:  dump_hexfile filename start_addr end_addr
 end
 
 define dump_binfile
@@ -867,82 +873,82 @@ define dump_binfile
 end
 document dump_binfile
 Write a range of memory to a binary file.
-Usage:	dump_binfile filename start_addr end_addr
+Usage:  dump_binfile filename start_addr end_addr
 end
-	
+  
 # _________________cracker tips_________________
 # The 'tips' command is used to provide tutorial-like info to the user
 define tips
-	printf "Tip Topic Commands:\n"
-	printf "\ttip_display : Automatically display values on each break\n"
-	printf "\ttip_patch   : Patching binaries\n"
-	printf "\ttip_strip   : Dealing with stripped binaries\n"
-	printf "\ttip_syntax  : ATT vs Intel syntax\n"
+  printf "Tip Topic Commands:\n"
+  printf "\ttip_display : Automatically display values on each break\n"
+  printf "\ttip_patch   : Patching binaries\n"
+  printf "\ttip_strip   : Dealing with stripped binaries\n"
+  printf "\ttip_syntax  : ATT vs Intel syntax\n"
 end
 document tips
 Provide a list of tips from crackers on various topics. 
 end
 
 define tip_patch
-	printf "\n"
-	printf "                   PATCHING MEMORY\n"
-	printf "Any address can be patched using the 'set' command:\n"
-	printf "\t`set ADDR = VALUE` \te.g. `set *0x8049D6E = 0x90`\n"
-	printf "\n"
-	printf "                 PATCHING BINARY FILES\n"
-	printf "Use `set write` in order to patch the target executable\n"
-	printf "directly, instead of just patching memory.\n"
-	printf "\t`set write on` \t`set write off`\n"
-	printf "Note that this means any patches to the code or data segments\n"
-	printf "will be written to the executable file. When either of these\n"
-	printf "commands has been issued, the file must be reloaded.\n"
-	printf "\n"
+  printf "\n"
+  printf "                   PATCHING MEMORY\n"
+  printf "Any address can be patched using the 'set' command:\n"
+  printf "\t`set ADDR = VALUE` \te.g. `set *0x8049D6E = 0x90`\n"
+  printf "\n"
+  printf "                 PATCHING BINARY FILES\n"
+  printf "Use `set write` in order to patch the target executable\n"
+  printf "directly, instead of just patching memory.\n"
+  printf "\t`set write on` \t`set write off`\n"
+  printf "Note that this means any patches to the code or data segments\n"
+  printf "will be written to the executable file. When either of these\n"
+  printf "commands has been issued, the file must be reloaded.\n"
+  printf "\n"
 end
 document tip_patch
 Tips on patching memory and binary files
 end
 
 define tip_strip
-	printf "\n"
-	printf "             STOPPING BINARIES AT ENTRY POINT\n"
-	printf "Stripped binaries have no symbols, and are therefore tough to\n"
-	printf "start automatically. To debug a stripped binary, use\n"
-	printf "\tinfo file\n"
-	printf "to get the entry point of the file. The first few lines of\n"
-	printf "output will look like this:\n"
-	printf "\tSymbols from '/tmp/a.out'\n"
-	printf "\tLocal exec file:\n"
-	printf "\t        `/tmp/a.out', file type elf32-i386.\n"
-	printf "\t        Entry point: 0x80482e0\n"
-	printf "Use this entry point to set an entry point:\n"
-	printf "\t`tbreak *0x80482e0`\n"
-	printf "The breakpoint will delete itself after the program stops as\n"
-	printf "the entry point.\n"
-	printf "\n"
+  printf "\n"
+  printf "             STOPPING BINARIES AT ENTRY POINT\n"
+  printf "Stripped binaries have no symbols, and are therefore tough to\n"
+  printf "start automatically. To debug a stripped binary, use\n"
+  printf "\tinfo file\n"
+  printf "to get the entry point of the file. The first few lines of\n"
+  printf "output will look like this:\n"
+  printf "\tSymbols from '/tmp/a.out'\n"
+  printf "\tLocal exec file:\n"
+  printf "\t        `/tmp/a.out', file type elf32-i386.\n"
+  printf "\t        Entry point: 0x80482e0\n"
+  printf "Use this entry point to set an entry point:\n"
+  printf "\t`tbreak *0x80482e0`\n"
+  printf "The breakpoint will delete itself after the program stops as\n"
+  printf "the entry point.\n"
+  printf "\n"
 end
 document tip_strip
 Tips on dealing with stripped binaries
 end
 
 define tip_syntax
-	printf "\n"
-	printf "\t    INTEL SYNTAX                        AT&T SYNTAX\n"
-	printf "\tmnemonic dest, src, imm            mnemonic src, dest, imm\n" 
-	printf "\t[base+index*scale+disp]            disp(base, index, scale)\n"
-	printf "\tregister:      eax                 register:      %%eax\n"
-	printf "\timmediate:     0xFF                immediate:     $0xFF\n"
-	printf "\tdereference:   [addr]              dereference:   addr(,1)\n"
-	printf "\tabsolute addr: addr                absolute addr: *addr\n"
-	printf "\tbyte insn:     mov byte ptr        byte insn:     movb\n"
-	printf "\tword insn:     mov word ptr        word insn:     movw\n"
-	printf "\tdword insn:    mov dword ptr       dword insn:    movd\n"
-	printf "\tfar call:      call far            far call:      lcall\n"
-	printf "\tfar jump:      jmp far             far jump:      ljmp\n"
-	printf "\n"
-	printf "Note that order of operands in reversed, and that AT&T syntax\n"
-	printf "requires that all instructions referencing memory operands \n"
-	printf "use an operand size suffix (b, w, d, q).\n"
-	printf "\n"
+  printf "\n"
+  printf "\t    INTEL SYNTAX                        AT&T SYNTAX\n"
+  printf "\tmnemonic dest, src, imm            mnemonic src, dest, imm\n" 
+  printf "\t[base+index*scale+disp]            disp(base, index, scale)\n"
+  printf "\tregister:      eax                 register:      %%eax\n"
+  printf "\timmediate:     0xFF                immediate:     $0xFF\n"
+  printf "\tdereference:   [addr]              dereference:   addr(,1)\n"
+  printf "\tabsolute addr: addr                absolute addr: *addr\n"
+  printf "\tbyte insn:     mov byte ptr        byte insn:     movb\n"
+  printf "\tword insn:     mov word ptr        word insn:     movw\n"
+  printf "\tdword insn:    mov dword ptr       dword insn:    movd\n"
+  printf "\tfar call:      call far            far call:      lcall\n"
+  printf "\tfar jump:      jmp far             far jump:      ljmp\n"
+  printf "\n"
+  printf "Note that order of operands in reversed, and that AT&T syntax\n"
+  printf "requires that all instructions referencing memory operands \n"
+  printf "use an operand size suffix (b, w, d, q).\n"
+  printf "\n"
 end
 document tip_syntax
 Summary of Intel and AT&T syntax differences
