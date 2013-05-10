@@ -1,3 +1,11 @@
+=How to
+
+1. copy gbb_init to your home directory
+2. change the name to .gdbinit
+3. enjoy!
+
+
+
 A GDB init file providing a SoftICE-style user interface.
 
 As featured in "More fun with GDB":
